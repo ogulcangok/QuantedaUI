@@ -1,0 +1,9 @@
+{
+    "path" : "~/shinyTest",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

@@ -1,0 +1,98 @@
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ [K]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ ls
+app.R  shinyTest.Rproj
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ cd[K[Kgit -com[K[K[Ka[K]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git -a[K[Kinit
+Initialized empty Git repository in /home/ogulcan/shinyTest/.git/
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git commit -m "first  commit"
+
+*** Please tell me who you are.
+
+Run
+
+  git config --global user.email "you@example.com"
+  git config --global user.name "Your Name"
+
+to set your account's default identity.
+Omit --global to set the identity only in this repository.
+
+fatal: unable to auto-detect email address (got 'ogulcan@ogulcan.(none)')
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git[K]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ gitgit config --glohal ogulcangok "ogulcangok1@gmail.com"
+No command 'gitgit' found, did you mean:
+ Command 'gitit' from package 'gitit' (universe)
+gitgit: command not found
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ gitgit config --glohal ogulcangok "ogulcangok1@gmail.com"[C[1P[1P[1P
+error: unknown option `glohal'
+usage: git config [<options>]
+
+Config file location
+    --global              use global config file
+    --system              use system config file
+    --local               use repository config file
+    -f, --file <file>     use given config file
+    --blob <blob-id>      read config from given blob object
+
+Action
+    --get                 get value: name [value-regex]
+    --get-all             get all values: key [value-regex]
+    --get-regexp          get values for regexp: name-regex [value-regex]
+    --get-urlmatch        get value specific for the URL: section[.var] URL
+    --replace-all         replace all matching variables: name value [value_regex]
+    --add                 add a new variable: name value
+    --unset               remove a variable: name [value-regex]
+    --unset-all           remove all matches: name [value-regex]
+    --rename-section      rename section: old-name new-name
+    --remove-section      remove a section: name
+    -l, --list            list all
+    -e, --edit            open an editor
+    --get-color           find the color configured: slot [default]
+    --get-colorbool       find the color setting: slot [stdout-is-tty]
+
+Type
+    --bool                value is "true" or "false"
+    --int                 value is decimal number
+    --bool-or-int         value is --bool or --int
+    --path                value is a path (file or directory name)
+
+Other
+    -z, --null            terminate values with NUL byte
+    --name-only           show variable names only
+    --includes            respect include directives on lookup
+
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git config --glohal ogulcangok "ogulcangok1@gmail.com"[C[C[1P[1@b
+error: key does not contain a section: ogulcangok
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git config --global ogulcangok "ogulcangok1@gmail.com"[C[C[1P "ogulcangok1@gmail.com"[1P "ogulcangok1@gmail.com"[1P "ogulcangok1@gmail.com"[1P "ogulcangok1@gmail.com"[1P "ogulcangok1@gmail.com"[1P "ogulcangok1@gmail.com"[1P "ogulcangok1@gmail.com"[1P "ogulcangok1@gmail.com"[1P "ogulcangok1@gmail.com"[1P "ogulcangok1@gmail.com"u "ogulcangok1@gmail.com"s "ogulcangok1@gmail.com"e "ogulcangok1@gmail.com"r "ogulcangok1@gmail.com". "ogulcangok1@gmail.com"e "ogulcangok1@gmail.com"m "ogulcangok1@gmail.com"a "ogulcangok1@gmail.com"i "ogulcangok1@gmail.com"l "ogulcangok1@gmail.com"
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git config --global user.email "ogulcangok1@gmail.com"ogulcangok[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Ch[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[3@git[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[29P commit -m "first commit"
+On branch master
+
+Initial commit
+
+Untracked files:
+	[31m.RData[m
+	[31m.Rhistory[m
+	[31m.Rproj.user/[m
+	[31mapp.R[m
+	[31mshinyTest.Rproj[m
+
+nothing added to commit but untracked files present
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ ^V[Kgit ro[Kemote add origin https://github.com/ogulcangok/rshiny.git
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git push -u origin master
+error: src refspec master does not match any.
+error: failed to push some refs to 'https://github.com/ogulcangok/rshiny.git'
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git push -u origin masterremote add origin https://github.com/ogulcangok/rshiny.git[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[34Pcommit -m "first commit"nfig --global user.email "ogulcangok1@gmail.com"[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[26Pmmit -m "first commit"[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[Kt
+On branch master
+
+Initial commit
+
+Untracked files:
+	[31m.RData[m
+	[31m.Rhistory[m
+	[31m.Rproj.user/[m
+	[31mapp.R[m
+	[31mshinyTest.Rproj[m
+
+nothing added to commit but untracked files present
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git commit *
+error: pathspec 'app.R' did not match any file(s) known to git.
+error: pathspec 'shinyTest.Rproj' did not match any file(s) known to git.
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git commit *[Kapp.R
+error: pathspec 'app.R' did not match any file(s) known to git.
+]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ 
