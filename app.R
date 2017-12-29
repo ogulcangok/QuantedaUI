@@ -7,7 +7,7 @@ library(SnowballC)
 library(ggplot2)
 library(dplyr)
 library("spacyr")
-
+library(DT)
 
 Sys.setlocale('LC_ALL','C')
 
@@ -40,7 +40,30 @@ ui <- fluidPage(
         fileInput("file1", "Choose CSV File", multiple = TRUE,accept = c("text/csv","text/comma-separated-values,text/plain",".csv")),
       # Output: Data file ----
       tabsetPanel(
-        tabPanel("Data",tableOutput("contents")),
+        tabPanel("Data",
+                 tabPanel("Summary",
+                          
+                          textInput("notes","Add Corpus Notes"),
+                          
+                          #action button to create corpus
+                          column(12,
+                                 
+                                 column(2,actionButton("addNotes","Add Notes")),
+                                 
+                                 column(3,checkboxInput("metadisp","Display Metadata",value = FALSE)),
+                                 column(3,checkboxInput("summdisp","Display Summary",value = FALSE))
+                                 
+                          ),
+                          conditionalPanel(
+                            condition = "input.metadisp == true", 
+                            h1("Metadata"),
+                            tableOutput("metaInfo")
+                          ),
+                          conditionalPanel(
+                          condition= "input.summdisp == true",
+                          h1("Summary"),
+                          tableOutput("summary"))),
+                 tableOutput("contents")),
                  
         tabPanel("Explore",
                  selectInput("plotMenu", "Select corpus filter", multiple = F,selectize = F,choices = c("Token","Read")),
@@ -62,28 +85,24 @@ ui <- fluidPage(
                    
                    conditionalPanel(
                    condition = "input.showText == true",
-                   tableOutput("textView")))
+                   tableOutput("textView"))),
+                 tabPanel("Subset",
+                          selectInput("selectYear", "Select Year",multiple= F,selectize = F,choices = c("2017","2016","2015","2014")),
+                          actionButton("createSubset","Create Subset"),
+                          tableOutput("showSubset")),
+                 tabPanel("Concordence",
+                          column(3,
+                          textInput("keyWord","Enter Your Key Word",width = 150)),
+                          column(3,
+                          textInput("keyWord2","Enter Your Key Word",width = 150)),
+                          column(3,
+                                 actionButton("save", "Save Subset")),
+                          plotOutput("concordencePlot"))
                  
                  )),
+                  tabPanel("Tokenize")
                  
-        tabPanel("Summary",
-               
-                 textInput("notes","Add Corpus Notes"),
-                 
-                 #action button to create corpus
-                 column(12,
-                        
-                 column(2,actionButton("addNotes","Add Notes")),
-                 
-                 column(4,checkboxInput("metadisp","Display Metadata",value = FALSE))
-                        ),
-                 conditionalPanel(
-                   condition = "input.metadisp == true", 
-                   h1("Metadata"),
-                   tableOutput("metaInfo")
-                 ),
-                 h1("Summary"),
-                 tableOutput("summary"))
+       
         
       
       )
@@ -100,8 +119,10 @@ server <- function(input, output) {
   readData <- reactive({
     
     aidata <- readtext(input$file1$datapath,text_field = "content")
-    cat(input$plotMenu)
+   # cat(input$plotMenu)
     aidata
+    
+    
     
   })
   
@@ -123,6 +144,8 @@ server <- function(input, output) {
       metacorpus(aicorp, "notes") <- input$notes
       #aicorp
       output$metaInfo <- renderTable(metacorpus(aicorp,"notes"))
+      
+      
       
       
      
@@ -175,8 +198,47 @@ server <- function(input, output) {
       }
     })
    
+   
+      createSubset <- reactive({
+        
+        aiSet <- corpus_subset(createCorp(), year == input$selectYear)
+        aiSet
+      })
+    
+      output$showSubset <- renderPrint({
+          createSubset()
+      })
+    
+      createKW <- reactive({
+        
+        options(width = 200)
+        scikw <- kwic(createSubset(), input$keyWord)
+        scikw
+      })
+   
+    
+   
     
     
+    output$concordencePlot <- renderPlot({
+      
+      if(input$keyWord2 == "")
+      {textplot_xray(createKW(), sort=T)}
+      else
+      {textplot_xray(kwic(createSubset(), input$keyWord ), kwic(createSubset(), input$keyWord2 ), sort = T)+ 
+        aes(color = keyword) + scale_color_manual(values = c("blue", "red"))}
+      
+    })
+    
+    saveKW <- reactive({
+      
+      
+      KWsubset <- corpus_subset(createCorp(), docnames(createCorp())%in% createKW()$docname)#subsets the documents of which names match the kwic docs(home)
+      save(KWsubset, file = "kwsubset.rda")
+    })
+    observeEvent(input$save,{
+    saveKW()
+    })
     
     output$summary <- renderTable({
       
