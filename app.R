@@ -5,7 +5,7 @@ library(SnowballC)
 library(ggplot2)
 library(dplyr)
 library("spacyr")
-library(DT)
+
 
 Sys.setlocale('LC_ALL', 'C')
 
@@ -65,7 +65,45 @@ ui <- fluidPage(# App title ----
                           column(3,textInput("keyWord2", "Enter Your Key Word", width = 150)),
                           column(3,actionButton("save", "Save Subset")),
                           plotOutput("concordencePlot")))),
-                        tabPanel("Tokenize")#TODO
+                        tabPanel("DFM",
+                         tabsetPanel(
+                           tabPanel("Plots",
+                                    selectInput("plotSelect","Select Plot Type",c("Text Cloud","Frequency"),selected = NULL),
+                                    plotOutput("dfmPlot")        
+                           ),
+                          
+                           tabPanel("Grouping",
+                                    column(4,
+                                    selectInput("groupSelect","Select Grouping Type",c("year","input2"))),
+                                    column(4,
+                                    selectInput("plotSelectGroup", "Select Graph Type", c("Text Plot", "Baloon Plot"))),
+                                    checkboxInput("showSort","Show Info"),
+                                    conditionalPanel(
+                                      condition = "input.showSort == true",
+                                      h1("Sort Summary"),
+                                    tableOutput("sort")),
+                                    plotOutput("groupPlot")
+                                    
+                                    ),
+                           tabPanel("Frequency",
+                                    
+                                    column(5,
+                                    sliderInput("frequencyInput","Frequency",min = 0,max = 30,value = 0)),
+                                    column(5,
+                                    textInput("frequencyKeyWord","Enter Key Word")),
+                                    plotOutput("frequencyPlot")
+                                    ),
+                           tabPanel("Keyness",
+                                    plotOutput("keynessPlot")),
+                           tabPanel("Dictionary",
+                                    textInput("sa","sa"))
+                           
+                          
+                           
+                         )        
+                                 
+                                 
+                        )
                     
                     
                     
@@ -201,6 +239,149 @@ server <- function(input, output) {
     summary(aicorp)
     
   })
+  
+  createDFM <- reactive({
+    
+   ai.dfm <- dfm(createCorp(),remove = stopwords("SMART"),stem = T, remove_punct = T,remove_numbers =T)
+   ai.dfm
+  
+   
+  })
+  
+  createDFMW <- reactive({
+    ai.dfmw <- dfm_weight(createDFM(),type = "tfidf")
+    ai.dfmw
+    
+  })
+  
+  createDFMT <- reactive({
+    
+    ai.trim <- dfm_trim(createDFMW(),min_count = 100,max_count = 300,verbose = T)
+  })
+  
+  getTopFeatures <- renderTable({
+    
+    topfeatures(createDFMW())
+  })
+  
+  createTextCloud <- reactive({
+    
+    textplot_wordcloud(createDFMT(), max.words =Inf,  random.order = FALSE,
+                       rot.per = .25, scale = c(2, 0.01), 
+                       colors = RColorBrewer::brewer.pal(8,"Dark2"))
+  })
+  
+  
+  
+  createFrequency <- reactive({
+    aifr <- textstat_frequency(createDFMW(), n = 100)
+    
+  })
+  
+  frequencyDiag <- reactive({
+    ggplot(createFrequency(), aes(x = feature, y = frequency)) +
+      geom_point() + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))
+    
+  })
+  
+  output$dfmPlot <- renderPlot({
+    if(input$plotSelect == "Text Cloud")
+    {
+      createTextCloud()
+    }
+    else
+    {frequencyDiag()}
+    
+  })
+  
+  createGroup <- reactive({
+    
+    ai.grp <- dfm(createCorp(), groups = "year", remove = stopwords("SMART"), remove_punct = TRUE)
+    ai.grp
+   
+  })
+  
+  groupSort <- reactive ({
+    
+    dfm_sort(createGroup())[, 1:20]
+  })
+  output$sort <- renderTable({
+    
+    groupSort()
+  })
+  output$groupPlot <- renderPlot({
+    if(input$plotSelectGroup == "Text Plot")
+    {
+    textplot_wordcloud(createGroup(), comparison = T,scale = c(2, 0.01))
+    }
+    else
+    {
+      
+      aigr.trm <- dfm_trim(createGroup(), min_count = 500, verbose = T)
+      dt <- as.table(as.matrix(aigr.trm))
+      library("gplots")
+      balloonplot(t(dt), main ="Words", xlab ="", ylab="",
+                  label = FALSE, show.margins = FALSE)
+    }
+    
+  })
+  
+  filterTerm <- reactive({
+    
+    freq_grouped <- textstat_frequency(createDFMW(),n=input$frequencyInput,
+                                      groups = "year")
+    freq_grouped
+    
+  })
+  
+  filterKW <- reactive({
+    fregr <- subset(filterTerm(), feature %in% input$frequencyKeyWord) 
+    cat(input$frequencyKeyWord)
+    fregr
+    
+  })
+  
+  output$frequencyPlot <- renderPlot({
+    if(input$frequencyInput == 0)
+    {
+      freq_grouped <- textstat_frequency(createDFMW(),
+                                         groups = "year")
+      fregr <- subset(freq_grouped, feature %in% input$frequencyKeyWord) 
+      ggplot(fregr,  aes(group, frequency)) +
+        geom_point()+
+        theme(axis.text.x = element_text(angle = 90, hjust = 1))
+    }
+    else
+    {
+      ggplot(data = filterTerm(), aes(x = nrow(filterTerm()):1, y = frequency)) +
+        geom_point() +
+        facet_wrap(~ group, scales = "free") +
+        coord_flip() +
+        scale_x_continuous(breaks = nrow(filterTerm()):1,
+                           labels = filterTerm()$feature) +
+        labs(x = NULL, y = "Relative frequency")
+      
+      
+    }
+    
+    
+  })
+  
+  output$keynessPlot <- renderPlot({
+    
+    ai.sub <- corpus_subset(createCorp(), 
+                            year %in% c("2015", "2016"))
+    
+    ai.subdfm <- dfm(ai.sub, groups = "year", remove = stopwords("english"), 
+                     remove_punct = TRUE)
+    result_keyness <- textstat_keyness(ai.subdfm, target = "2015")
+    
+    
+    textplot_keyness(result_keyness) 
+    
+  })
+  
   }
 # Create Shiny app ----
 shinyApp(ui, server)
