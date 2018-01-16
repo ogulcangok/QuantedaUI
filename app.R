@@ -5,6 +5,8 @@ library(SnowballC)
 library(ggplot2)
 library(dplyr)
 library("spacyr")
+library(DT)
+library(shinyBS)
 
 
 Sys.setlocale('LC_ALL', 'C')
@@ -16,11 +18,13 @@ ui <- fluidPage(# App title ----
                 tags$hr(),
                 #Creating the main panel
                 mainPanel(
+                 
                   #Adding a file input. This input can get multiple files and file types text or csv.
                   fileInput("file1","Choose CSV File",multiple = TRUE,accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv")),
                   #Creating First main tab DATA.
                   tabsetPanel(
                     tabPanel("Data",
+                             
                        textInput("notes", "Add Corpus Notes"),#Add a text input for adding some notes to metadata
                       column(12,#create a column with a width 12 and assign each 3 widths an action button and two checkbox
                         column(2, actionButton("addNotes", "Add Notes")),
@@ -32,39 +36,45 @@ ui <- fluidPage(# App title ----
                         h1("Metadata"),
                         tableOutput("metaInfo")),
                       conditionalPanel(
+                        
                         condition = "input.summdisp == true",
                         h1("Summary"),
-                        tableOutput("summary")),
+                        
+                        DT::dataTableOutput("summary")
+                        
+                        
+                       ),
                         tableOutput("contents")),
                     
                     tabPanel("Explore",#Second main tab EXPLORE.
-                      selectInput("plotMenu","Select corpus filter",multiple = F,selectize = F,choices = c("Token", "Read")),#Select a filter from a combobox
+                     
                       
                       tabsetPanel(#Explore has many subtabs. Data tab shows the top and blow 10 of the given filter.
-                        tabPanel("Data",
-                         h3("Top 10 descending"),
-                         tableOutput("calculateHeadDesc"),
-                         h3("Top 10 ascending"),
-                         tableOutput("calculateHead")),
+                       
                         tabPanel("Graph",#Graph tab gives the boxplot of the given filter.
+                                 selectInput("plotMenu","Select corpus filter",multiple = F,selectize = F,choices = c("Token", "Read")),#Select a filter from a combobox
                          plotOutput("plotToken")),
-                        tabPanel("Text",#Text tab gives the full text which can be entered from the numericInput below.
-                          numericInput("viewText", "Enter text no", 0),
-                          actionButton("view", "View Text"),
-                          checkboxInput("showText", "Show/Hide Text", value = TRUE),#I added an check box to enable and disable the text.
-                          conditionalPanel(#again checks if it is enabled or not if so show the text
-                            condition = "input.showText == true",
-                            tableOutput("textView"))),
-                        tabPanel("Subset",#Subset tab creates subsets of the given year. At this stage i give the years but with an algorithm we can pick the years and insert 
-                                 #to the combo box.
-                          selectInput("selectYear","Select Year",multiple = F,selectize = F,choices = c("2017", "2016", "2015", "2014")),
-                          actionButton("createSubset", "Create Subset"),
-                          tableOutput("showSubset")),
+                       
+                   
                         tabPanel("Concordence",#Concordence tab draws a graph, which gives info about a word in all corpuses.
+                                 tabsetPanel(
+                                   tabPanel("Lexical Plot",
+                                            selectInput("selectYear","Select Year",multiple = F,selectize = F,choices = c("2017", "2016", "2015", "2014")),
+                                           
+                                            tableOutput("showSubset"),
                           column(3,textInput("keyWord", "Enter Your Key Word", width = 150)),
                           column(3,textInput("keyWord2", "Enter Your Key Word", width = 150)),
-                          column(3,actionButton("save", "Save Subset")),
-                          plotOutput("concordencePlot")))),
+                         
+                          plotOutput("concordencePlot")),
+                          tabPanel("Text Data",
+                                   
+                                   textInput("saveName","Enter The Subset Name"),
+                                   column(3,downloadButton("save", "Save Subset")),
+                                   column(3,textInput("concoInput","Enter a Key Word")),
+                                   tableOutput("concordenceTextOut"))
+                          ))
+                        
+                        )),
                         tabPanel("DFM",
                          tabsetPanel(
                            tabPanel("Plots",
@@ -86,17 +96,19 @@ ui <- fluidPage(# App title ----
                                     
                                     ),
                            tabPanel("Frequency",
-                                    
+                                    h3("If the frequency is 0 it will give you your keyword's frequency."),
+                                    column(6,
+                                    sliderInput("frequencyInput","Change the number of the top Words",min = 0,max = 30,value = 0)),
                                     column(5,
-                                    sliderInput("frequencyInput","Frequency",min = 0,max = 30,value = 0)),
-                                    column(5,
-                                    textInput("frequencyKeyWord","Enter Key Word")),
+                                    textInput("frequencyKeyWord","Enter Your Own Key Word")),
                                     plotOutput("frequencyPlot")
                                     ),
                            tabPanel("Keyness",
                                     plotOutput("keynessPlot")),
                            tabPanel("Dictionary",
-                                    textInput("sa","sa"))
+                                    fileInput("file2","Upload Your Dictionary",multiple = FALSE,accept = ".dic"),
+                                    tableOutput("dictTable"),
+                                   plotOutput("dictPlot"))
                            
                           
                            
@@ -121,7 +133,8 @@ server <- function(input, output) {
   
    readData <- reactive({#Main function to read data from the csv
     aidata <- readtext(input$file1$datapath, text_field = "content")
-    # cat(input$plotMenu)
+    
+    aidata$date_time <- as.Date(aidata$date_time)
     aidata
     
     
@@ -197,8 +210,15 @@ server <- function(input, output) {
   })
   
   output$showSubset <- renderPrint({
-    createSubset()
+    createSubset() 
   })
+  
+  output$concordenceTextOut <- renderTable(
+    {
+      kwic(createCorp(), input$concoInput , valuetype = "regex")
+      
+    }
+  )
   
   createKW <- reactive({#concordence tab functions
     options(width = 200)
@@ -224,19 +244,54 @@ server <- function(input, output) {
   })
   
   saveKW <- reactive({#reactive function to save the current subset as a .rda file to the working directory.
+    
+    
     KWsubset <-
       corpus_subset(createCorp(),
                     docnames(createCorp()) %in% createKW()$docname)#subsets the documents of which names match the kwic docs(home)
-    save(KWsubset, file = "kwsubset.rda")
-  })
-  observeEvent(input$save, {
-    saveKW()
+    
   })
   
-  output$summary <- renderTable({#this func. is displaying the summary of the data.
+  
+  
+  output$save <- downloadHandler(
+    filename = function() {
+      paste(input$saveName,".rda")
+    },
+    content = function(KWsubset) {
+      KWsubset <-
+        corpus_subset(createCorp(),
+                      docnames(createCorp()) %in% createKW()$docname)#subsets the documents of which names match the kwic docs(home)
+      
+      save()
+    }
+  )
+  
+  modalText <- modalDialog("Text View",size = "l", tableOutput("modalTextOut"))
+  
+  
+  output$summary <-  DT::renderDataTable(selection = 'single',{#this func. is displaying the summary of the data.
+     
     aicorp <- createCorp()
+   
+    s = input$summary_rows_selected
+    if(length(s))
+    {
+      
+      output$modalTextOut <- renderTable(texts(createCorp())[s])
+      showModal(modalText)
+      
+      
+      
+      
+      
+    }
+    
     
     summary(aicorp)
+   
+    
+    
     
   })
   
@@ -379,6 +434,33 @@ server <- function(input, output) {
     
     
     textplot_keyness(result_keyness) 
+    
+  })
+  
+  createDict <- reactive({
+    
+    dict <- input$file2$datapath
+    
+   
+    myDict <- dictionary(file= dict, format = "LIWC")
+   
+    ai.dict <- dfm(createCorp(), groups = "year",  remove = stopwords("english"), remove_punct = TRUE, dictionary =myDict)
+    topfeatures(ai.dict)
+    
+    dt <- as.table(as.matrix(ai.dict))
+    dt
+  })
+  
+  output$dictPlot <- renderTable({
+    createDict()
+  })
+  
+  output$dictPlot <- renderPlot({
+    
+    library("gplots")
+    balloonplot(t(createDict()), main ="Words", xlab ="", ylab="",
+                label = FALSE, show.margins = FALSE)
+    
     
   })
   
