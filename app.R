@@ -7,6 +7,7 @@ library(dplyr)
 library("spacyr")
 library(DT)
 library(shinyBS)
+library(anytime)
 
 
 Sys.setlocale('LC_ALL', 'C')
@@ -24,8 +25,9 @@ ui <- fluidPage(# App title ----
                   
                   
                   column(12,
-                         column(8,
+                         column(4,
                                 fileInput("file1","Choose CSV File",multiple = TRUE,accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))),
+                         column(4,actionButton("textLoc","Specify Text in CSV")),
                          column(4,actionButton("help","Help"))),
                   
                   
@@ -72,7 +74,7 @@ ui <- fluidPage(# App title ----
                                         tabsetPanel(
                                           tabPanel("Lexical Plot",
                                                    column(12,
-                                                          column(8,selectInput("selectYear","Select Year",multiple = F,selectize = F,choices = c("2017", "2016", "2015", "2014"))),
+                                                          column(8,selectInput("selectYear","Select Year",multiple = F,selectize = F,choices = year)),
                                                           column(4,actionButton("helpLexical","Help"))),
                                                    tableOutput("showSubset"),
                                                    column(3,textInput("keyWord", "Enter Your Key Word", width = 150)),
@@ -123,6 +125,10 @@ ui <- fluidPage(# App title ----
                                ),
                                tabPanel("Keyness",
                                         column(4,actionButton("helpKey","Help")),
+                                        column(4,
+                                               selectInput("keynessYear1","Select Year",year)),
+                                        column(4,
+                                               selectInput("keynessYear2", "Select Year", year)),
                                         plotOutput("keynessPlot",dblclick = "keynessPlotDbl")),
                                tabPanel("Dictionary",
                                         column(12,
@@ -131,9 +137,20 @@ ui <- fluidPage(# App title ----
                                         tableOutput("dictTable"),
                                         plotOutput("dictPlot",dblclick = "dictPlotDbl")),
                                tabPanel("Similarity",
+                                        
+                                        column(12,
+                                        column(4,
+                                               selectInput("similarityYear","Select Year",year)),
+                                        column(4,
+                                               selectInput("similaritySelect","Select Filter",c("Documents","Features")))),
+                                        
                                         tableOutput("similarity")
                                ),
                                tabPanel("Clustering",
+                                        column(4,
+                                               selectInput("clusterYear","Select Year",year)),
+                                        column(4,
+                                               selectInput("clusterSelect","Select Filter",c("documents","features"))),
                                         plotOutput("clustering"))
                                
                                
@@ -157,6 +174,8 @@ server <- function(input, output) {
   #Througout the server reactive is used maby times. Reactive stands for static in java. Simply it enables us to use the function anywhere we want.
   #All functions are from the downloaded packages. (non vanilla r)
   
+  
+  modalCSV <- modalDialog("Text",size = "l",selectInput("csvText","Select Text Column Name",c))
   modalConcor <- modalDialog("Plot",size = "l", plotOutput("modalConcorOut"))
   modalDfm <- modalDialog("Plot",size = "l",plotOutput("modalDfmOut"))
   modalGroup <-  modalDialog("Plot",size = "l",plotOutput("modalGroupOut"))
@@ -231,15 +250,29 @@ server <- function(input, output) {
   })
   
   
+  
   readData <- reactive({#Main function to read data from the csv
-    aidata <- readtext(input$file1$datapath, text_field = "content")
     
-    aidata$date_time <- as.Date(aidata$date_time)
+    aidata <- readtext(input$file1$datapath,text_field = "Text")
+    
+    cat(colnames(aidata))
+    
+    year <<- sort(unique(format(anydate(aidata$Date, "%Y%m%d"),"%Y")))
+    aidata$Date <- anydate(aidata$Date, "%Y%m%d")
+   
+    
     aidata
     
     
-    
   })
+  
+  observeEvent(input$textLoc,{
+    c <<-colnames(readData())
+    showModal(modalCSV)
+    
+  }
+  
+  )
   
   
   createCorp <- reactive({#creating the corpus from the read data.
@@ -613,11 +646,11 @@ server <- function(input, output) {
   output$keynessPlot <- renderPlot({
     
     ai.sub <- corpus_subset(createCorp(), 
-                            year %in% c("2015", "2016"))
+                            year %in% c(input$keynessYear1, input$keynessYear2))
     
     ai.subdfm <- dfm(ai.sub, groups = "year", remove = stopwords("english"), 
                      remove_punct = TRUE)
-    result_keyness <- textstat_keyness(ai.subdfm, target = "2015")
+    result_keyness <- textstat_keyness(ai.subdfm, target = input$keynessYear1)
     
     
     textplot_keyness(result_keyness) 
@@ -628,11 +661,11 @@ server <- function(input, output) {
     
     output$modalKeyOut <- renderPlot({
       ai.sub <- corpus_subset(createCorp(), 
-                              year %in% c("2015", "2016"))
+                              year %in% c(input$keynessYear1, input$keynessYear2))
       
       ai.subdfm <- dfm(ai.sub, groups = "year", remove = stopwords("english"), 
                        remove_punct = TRUE)
-      result_keyness <- textstat_keyness(ai.subdfm, target = "2015")
+      result_keyness <- textstat_keyness(ai.subdfm, target = input$keynessYear1)
       
       
       textplot_keyness(result_keyness) 
@@ -687,7 +720,7 @@ server <- function(input, output) {
   
   calculateSimilarity <- reactive({
     
-    ai2016 <- corpus_subset(createCorp(), year==2016)
+    ai2016 <- corpus_subset(createCorp(), year==input$similarityYear)
     ai2016dfm <- dfm(ai2016, stem = T, remove = stopwords("english"), remove_punct=T)
     a <- textstat_dist(dfm_weight(ai2016dfm, "tfidf"), margin="documents", method="euclidean")
     table(a)
@@ -696,13 +729,23 @@ server <- function(input, output) {
     
   })
   
-  output$similarity <- renderTable({
-    calculateSimilarity()
+  calculateSimilartyFeatures <- reactive({
+    
+    ai.trm <- dfm_trim(createDFMW(), min_count = 200, max_count = 300,  verbose = T)
+    d <- textstat_simil(dfm_weight(ai.trm, "tfidf"), margin="features", method="cosine")
+    table(d)
+    
   })
   
-  output$clustering <- renderPlot({
+  output$similarity <- renderTable({
+    if(input$similaritySelect == "Documents")
+   { calculateSimilarity()}
+    else
+      {calculateSimilartyFeatures()}
+  })
+  createDocumentDend <- reactive({
     
-    ai2016 <- corpus_subset(createCorp(), year==2016)
+    ai2016 <- corpus_subset(createCorp(), year==input$clusterYear)
     ai2016dfm <- dfm(ai2016, stem = T, remove = stopwords("english"), remove_punct=T)
     d <- textstat_simil(dfm_weight(ai2016dfm, "tfidf"), margin="documents", method="cosine")
     library(dendextend)
@@ -710,7 +753,35 @@ server <- function(input, output) {
     dend <- as.dendrogram(hc_res)
     plot(dend, 
          horiz =  TRUE,  nodePar = list(cex = .007))
+  })
+  
+  createFeaturesDend <- reactive({
     
+    ai.trm <- dfm_trim(createDFMW(), min_count = 200, max_count = 300,  verbose = T)
+    d <- textstat_simil(dfm_weight(ai.trm, "tfidf"), margin="features", method="cosine")
+    library(dendextend)
+    hc_res <- hclust(d, method = "ward.D")
+    dend <- as.dendrogram(hc_res)
+    plot(dend, 
+         horiz =  TRUE,  nodePar = list(cex = .007))
+    
+  })
+ 
+  
+  output$clustering <- renderPlot({
+    
+    
+    if(input$clusterSelect == "documents")
+    {
+      createDocumentDend()
+      
+      
+      }
+    else{
+    
+      createFeaturesDend()
+    }
+   
     
   })
   

@@ -1,21 +1,0 @@
-[K]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git add .
-]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git commit -m "added new tabs and functions"
-[master 95da044] added new tabs and functions
- 4 files changed, 210 insertions(+), 356 deletions(-)
- rewrite .Rproj.user/2752331D/console06/1A7800A7 (100%)
- rewrite .Rproj.user/2752331D/console06/INDEX001 (85%)
- rewrite app.R (90%)
-]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ git push origin mai[K[Kaster
-error: cannot run rpostback-askpass: No such file or directory
-Username for 'https://github.com': ogulcangok
-error: cannot run rpostback-askpass: No such file or directory
-Password for 'https://ogulcangok@github.com': 
-Counting objects: 11, done.
-Delta compression using up to 4 threads.
-Compressing objects:  10% (1/10)   Compressing objects:  20% (2/10)   Compressing objects:  30% (3/10)   Compressing objects:  40% (4/10)   Compressing objects:  50% (5/10)   Compressing objects:  60% (6/10)   Compressing objects:  70% (7/10)   Compressing objects:  80% (8/10)   Compressing objects:  90% (9/10)   Compressing objects: 100% (10/10)   Compressing objects: 100% (10/10), done.
-Writing objects:   9% (1/11)   Writing objects:  18% (2/11)   Writing objects:  27% (3/11)   Writing objects:  36% (4/11)   Writing objects:  45% (5/11)   Writing objects:  54% (6/11)   Writing objects:  63% (7/11)   Writing objects:  72% (8/11)   Writing objects:  81% (9/11)   Writing objects:  90% (10/11)   Writing objects: 100% (11/11)   Writing objects: 100% (11/11), 2.98 KiB | 0 bytes/s, done.
-Total 11 (delta 4), reused 0 (delta 0)
-remote: Resolving deltas:   0% (0/4)   [Kremote: Resolving deltas:  25% (1/4)   [Kremote: Resolving deltas:  50% (2/4)   [Kremote: Resolving deltas:  75% (3/4)   [Kremote: Resolving deltas: 100% (4/4)   [Kremote: Resolving deltas: 100% (4/4), completed with 4 local objects.[K
-To https://github.com/ogulcangok/rshiny.git
-   f81851a..95da044  master -> master
-]0;/home/ogulcan/shinyTest]0;ogulcan@ogulcan: ~/shinyTest[01;32mogulcan@ogulcan[00m:[01;34m~/shinyTest[00m$ 
