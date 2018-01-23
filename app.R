@@ -7,11 +7,14 @@ library(dplyr)
 library("spacyr")
 library(DT)
 library(shinyBS)
-library(anytime)
+library(lubridate)
+library(tidyverse)
 
 
 Sys.setlocale('LC_ALL', 'C')
-options(shiny.maxRequestSize=100000*1024^2)#This should accept 10gb of data
+options(shiny.maxRequestSize=40*1024^2)
+
+
 
 # Define UI for data upload app ----
 ui <- fluidPage(# App title ----
@@ -27,7 +30,7 @@ ui <- fluidPage(# App title ----
                   column(12,
                          column(4,
                                 fileInput("file1","Choose CSV File",multiple = TRUE,accept = c("text/csv", "text/comma-separated-values,text/plain", ".csv"))),
-                         column(4,actionButton("textLoc","Specify Text in CSV")),
+                         
                          column(4,actionButton("help","Help"))),
                   
                   
@@ -74,7 +77,7 @@ ui <- fluidPage(# App title ----
                                         tabsetPanel(
                                           tabPanel("Lexical Plot",
                                                    column(12,
-                                                          column(8,selectInput("selectYear","Select Year",multiple = F,selectize = F,choices = year)),
+                                                          column(8,selectInput("selectYear","Select Year",multiple = F,selectize = F,choices = "")),
                                                           column(4,actionButton("helpLexical","Help"))),
                                                    tableOutput("showSubset"),
                                                    column(3,textInput("keyWord", "Enter Your Key Word", width = 150)),
@@ -102,7 +105,7 @@ ui <- fluidPage(# App title ----
                                
                                tabPanel("Grouping",
                                         column(4,
-                                               selectInput("groupSelect","Select Grouping Type",c("year","input2"))),
+                                               selectInput("groupSelect","Select Grouping Type",choices = c(""))),
                                         column(4,
                                                selectInput("plotSelectGroup", "Select Graph Type", c("Text Plot", "Baloon Plot"))),
                                         column(4,actionButton("helpGroup","Help")),
@@ -126,9 +129,9 @@ ui <- fluidPage(# App title ----
                                tabPanel("Keyness",
                                         column(4,actionButton("helpKey","Help")),
                                         column(4,
-                                               selectInput("keynessYear1","Select Year",year)),
+                                               selectInput("keynessYear1","Select Year","")),
                                         column(4,
-                                               selectInput("keynessYear2", "Select Year", year)),
+                                               selectInput("keynessYear2", "Select Year", "")),
                                         plotOutput("keynessPlot",dblclick = "keynessPlotDbl")),
                                tabPanel("Dictionary",
                                         column(12,
@@ -139,19 +142,24 @@ ui <- fluidPage(# App title ----
                                tabPanel("Similarity",
                                         
                                         column(12,
-                                        column(4,
-                                               selectInput("similarityYear","Select Year",year)),
-                                        column(4,
-                                               selectInput("similaritySelect","Select Filter",c("Documents","Features")))),
+                                               column(4,
+                                                      selectInput("similarityYear","Select Year","")),
+                                               column(4,
+                                                      selectInput("similaritySelect","Select Filter",c("Documents","Features")))),
                                         
                                         tableOutput("similarity")
                                ),
                                tabPanel("Clustering",
                                         column(4,
-                                               selectInput("clusterYear","Select Year",year)),
+                                               selectInput("clusterYear","Select Year","")),
                                         column(4,
                                                selectInput("clusterSelect","Select Filter",c("documents","features"))),
-                                        plotOutput("clustering"))
+                                        plotOutput("clustering")),
+                               tabPanel("Topic Detection",
+                                        
+                                        plotOutput("topic")
+                                        
+                               )
                                
                                
                                
@@ -170,12 +178,12 @@ ui <- fluidPage(# App title ----
 
 
 # Define server logic to read selected file ----
-server <- function(input, output) {
+server <- function(input, output,session) {
   #Througout the server reactive is used maby times. Reactive stands for static in java. Simply it enables us to use the function anywhere we want.
   #All functions are from the downloaded packages. (non vanilla r)
+  options(shiny.maxRequestSize=100*1024^2)
   
   
-  modalCSV <- modalDialog("Text",size = "l",selectInput("csvText","Select Text Column Name",c))
   modalConcor <- modalDialog("Plot",size = "l", plotOutput("modalConcorOut"))
   modalDfm <- modalDialog("Plot",size = "l",plotOutput("modalDfmOut"))
   modalGroup <-  modalDialog("Plot",size = "l",plotOutput("modalGroupOut"))
@@ -255,28 +263,44 @@ server <- function(input, output) {
     
     aidata <- readtext(input$file1$datapath,text_field = "Text")
     
-    cat(colnames(aidata))
     
-    year <<- sort(unique(format(anydate(aidata$Date, "%Y%m%d"),"%Y")))
-    aidata$Date <- anydate(aidata$Date, "%Y%m%d")
-   
+    
+    
+    aidata <- aidata%>%separate(Date,c("day","month","year"),remove = F)
+    
+    
+    
+  
+    
     
     aidata
     
     
   })
   
-  observeEvent(input$textLoc,{
-    c <<-colnames(readData())
-    showModal(modalCSV)
-    
-  }
+  updateLists <- reactive({
+    updateSelectInput(inputId = "groupSelect",session  ,choices = colnames(readData() ))
+    updateSelectInput(inputId = "selectYear",session  ,choices = sort(unique(readData()$year)))
+    updateSelectInput(inputId = "keynessYear1",session  ,choices = sort(unique(readData()$year)) )
+    observe({
+      listYear <- sort(unique(readData()$year))
+      ch1 <- input$keynessYear1
+      ch2 <- setdiff(listYear,ch1)
+      
+      
+      
+      updateSelectInput(inputId = "keynessYear2",session  ,choices = ch2)
+    })
+    updateSelectInput(inputId = "clusterYear",session  ,choices = sort(unique(readData()$year)))
+    updateSelectInput(inputId = "similarityYear",session  ,choices = sort(unique(readData()$year)))
+  })
   
-  )
+  
   
   
   createCorp <- reactive({#creating the corpus from the read data.
     aicorp <- corpus(readData())
+    
     aicorp
   })
   
@@ -296,12 +320,13 @@ server <- function(input, output) {
     aicorp <- createCorp()
     fk <- textstat_readability(aicorp, "Flesch.Kincaid")
     docvars(aicorp, "fk") <- fk
-    tokenInfo <- summary(aicorp, showmeta = T)
+    tokenInfo <-summary(aicorp, showmeta = T)
     tokenInfo
   })
   
   modalPlot <- modalDialog("Token", size = "l", plotOutput("plotTokenModal"))
   output$plotToken <- renderPlot({#and drawing the plot of the calculateHead()
+    
     if (input$plotMenu == "Token") {
       
       
@@ -316,6 +341,7 @@ server <- function(input, output) {
   
   
   observeEvent(input$plotTokenDbl,{
+    
     if (input$plotMenu == "Token")
     {
       output$plotTokenModal <- renderPlot(ggplot(calculateRead(), aes(x = as.factor(year), y = Tokens)) + geom_boxplot())}
@@ -332,6 +358,7 @@ server <- function(input, output) {
   
   
   createSubset <- reactive({#reactive method to create subsets
+    updateLists()
     aiSet <- corpus_subset(createCorp(), year == input$selectYear)
     aiSet
   })
@@ -412,7 +439,6 @@ server <- function(input, output) {
       paste(input$saveName,".rda")
     },
     content = function(file) {
-      
       KWsubset <- saveKW()
       save(KWsubset, file = file)
     }
@@ -437,8 +463,8 @@ server <- function(input, output) {
       
       
     }
-    
-    
+    fk <- textstat_readability(aicorp, "Flesch.Kincaid")
+    docvars(aicorp, "fk") <- fk
     summary(aicorp)
     
     
@@ -518,7 +544,8 @@ server <- function(input, output) {
   
   createGroup <- reactive({
     
-    ai.grp <- dfm(createCorp(), groups = "year", remove = stopwords("SMART"), remove_punct = TRUE)
+    updateLists()
+    ai.grp <- dfm(createCorp(), groups = input$groupSelect  , remove = stopwords("SMART"), remove_punct = TRUE)
     ai.grp
     
   })
@@ -536,7 +563,7 @@ server <- function(input, output) {
   output$groupPlot <- renderPlot({
     if(input$plotSelectGroup == "Text Plot")
     {
-      textplot_wordcloud(createGroup(), comparison = T,scale = c(2, 0.01))
+      textplot_wordcloud(createGroup(), comparison = T,scale = c(0.9, 0.5))
     }
     else
     {
@@ -545,8 +572,7 @@ server <- function(input, output) {
       dt <- as.table(as.matrix(aigr.trm))
       library("gplots")
       balloonplot(t(dt), main ="Words", xlab ="", ylab="",
-                  label = FALSE, show.margins = FALSE)
-    }
+                  label = FALSE, show.margins = FALSE,colsrt = 90,colmar = 6)    }
     
   })
   
@@ -561,11 +587,18 @@ server <- function(input, output) {
       
       
       output$modalGroupOut <- renderPlot({ 
+        
+        
         aigr.trm <- dfm_trim(createGroup(), min_count = 500, verbose = T)
         dt <- as.table(as.matrix(aigr.trm))
         library("gplots")
         balloonplot(t(dt), main ="Words", xlab ="", ylab="",
-                    label = FALSE, show.margins = FALSE)})
+                    label = FALSE, show.margins = FALSE,colsrt = 90,colmar = 3)
+        
+       
+        }
+        
+        )
     }
     showModal(modalGroup)
     
@@ -643,8 +676,10 @@ server <- function(input, output) {
     
   })
   
+  
+  
   output$keynessPlot <- renderPlot({
-    
+    updateLists()
     ai.sub <- corpus_subset(createCorp(), 
                             year %in% c(input$keynessYear1, input$keynessYear2))
     
@@ -658,7 +693,7 @@ server <- function(input, output) {
   })
   
   observeEvent(input$keynessPlotDbl,{
-    
+    updateLists()
     output$modalKeyOut <- renderPlot({
       ai.sub <- corpus_subset(createCorp(), 
                               year %in% c(input$keynessYear1, input$keynessYear2))
@@ -719,7 +754,7 @@ server <- function(input, output) {
   
   
   calculateSimilarity <- reactive({
-    
+    updateLists()
     ai2016 <- corpus_subset(createCorp(), year==input$similarityYear)
     ai2016dfm <- dfm(ai2016, stem = T, remove = stopwords("english"), remove_punct=T)
     a <- textstat_dist(dfm_weight(ai2016dfm, "tfidf"), margin="documents", method="euclidean")
@@ -738,52 +773,61 @@ server <- function(input, output) {
   })
   
   output$similarity <- renderTable({
-    if(input$similaritySelect == "Documents")
-   { calculateSimilarity()}
-    else
-      {calculateSimilartyFeatures()}
-  })
-  createDocumentDend <- reactive({
     
-    ai2016 <- corpus_subset(createCorp(), year==input$clusterYear)
-    ai2016dfm <- dfm(ai2016, stem = T, remove = stopwords("english"), remove_punct=T)
-    d <- textstat_simil(dfm_weight(ai2016dfm, "tfidf"), margin="documents", method="cosine")
-    library(dendextend)
-    hc_res <- hclust(d, method = "ward.D")
-    dend <- as.dendrogram(hc_res)
-    plot(dend, 
-         horiz =  TRUE,  nodePar = list(cex = .007))
+    if(input$similaritySelect == "Documents")
+    { calculateSimilarity()}
+    else
+    {calculateSimilartyFeatures()}
   })
   
-  createFeaturesDend <- reactive({
-    
-    ai.trm <- dfm_trim(createDFMW(), min_count = 200, max_count = 300,  verbose = T)
-    d <- textstat_simil(dfm_weight(ai.trm, "tfidf"), margin="features", method="cosine")
-    library(dendextend)
-    hc_res <- hclust(d, method = "ward.D")
-    dend <- as.dendrogram(hc_res)
-    plot(dend, 
-         horiz =  TRUE,  nodePar = list(cex = .007))
-    
-  })
- 
   
   output$clustering <- renderPlot({
     
     
     if(input$clusterSelect == "documents")
     {
-      createDocumentDend()
+      updateLists()
+      ai2016 <- corpus_subset(createCorp(), year==input$clusterYear)
+      ai2016dfm <- dfm(ai2016, stem = T, remove = stopwords("english"), remove_punct=T)
+      d <- textstat_simil(dfm_weight(ai2016dfm, "tfidf"), margin="documents", method="cosine")
+      library(dendextend)
+      hc_res <- hclust(d, method = "ward.D")
+      dend <- as.dendrogram(hc_res)
+      plot(dend, 
+           horiz =  TRUE,  nodePar = list(cex = .007))
       
       
-      }
-    else{
-    
-      createFeaturesDend()
     }
-   
+    else{
+      
+      ai.trm <- dfm_trim(createDFMW(), min_count = 200, max_count = 300,  verbose = T)
+      d <- textstat_simil(dfm_weight(ai.trm, "tfidf"), margin="features", method="cosine")
+      library(dendextend)
+      hc_res <- hclust(d, method = "ward.D")
+      dend <- as.dendrogram(hc_res)
+      plot(dend, 
+           horiz =  TRUE,  nodePar = list(cex = .007))
+    }
+    
     
   })
+  
+  output$topic <- renderPlot({
+    
+    library(topicmodels)
+    
+    myLDAfit20 <- LDA(convert(createDFMT(),to="topicmodels"),k= 20)
+    get_terms(myLDAfit20,5)
+    
+    
+    
+    
+    
+    
+    
+    
+  })
+  
   
 }
 # Create Shiny app ----
